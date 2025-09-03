@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shorten</title>
+</head>
+<body>
+    <h1>Shorten</h1>
+    <ul>
+        <li>{{.resp.ID}}</li>
+        <li>{{.resp.URL}}</li>
+        <li>{{.resp.ShortCode}}</li>
+    </ul>
+
+    <!-- 后端渲染时把原始 URL 写进一个隐藏元素（或 JS 变量） -->
+    <span id="target" style="display:none">{{ .resp.URL }}</span>
+
+    <!-- 跳转脚本 -->
+    <script>
+        // 直接读取 span 里的值，不再发网络请求
+        const url = document.getElementById('target').textContent.trim();
+        window.location.replace(url);
+    </script>
+</body>
+</html>
