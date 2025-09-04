@@ -50,12 +50,14 @@ func (h *ShortURLHandler) Retrieve(c *gin.Context) {
 		CreatedAt: shortURL.CreatedAt,
 		UpdatedAt: shortURL.UpdatedAt,
 	}
-	err = h.svc.UpdateAC(shortCode)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	go func() {
+		_ = h.svc.IncrAccessCount(shortCode)
+	}()
+	if c.GetHeader("Accept") == "application/json" {
+		c.JSON(http.StatusOK, resp)
 		return
 	}
-	c.HTML(http.StatusOK, "shorten.html", gin.H{"resp": resp})
+	c.Redirect(http.StatusFound, shortURL.URL)
 }
 
 func (h *ShortURLHandler) UpdateShortURL(c *gin.Context) {
