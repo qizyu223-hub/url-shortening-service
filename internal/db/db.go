@@ -9,9 +9,8 @@ import (
 	"url-shortening-service/internal/model"
 )
 
-var DB *gorm.DB
-
-func InitDB() {
+func InitDB() (*gorm.DB, error) {
+	var DB *gorm.DB
 	var err error
 	c := config.Cfg
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -20,5 +19,9 @@ func InitDB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = DB.AutoMigrate(model.ShortURL{})
+	err = DB.AutoMigrate(model.ShortURL{})
+	if err != nil {
+		return nil, fmt.Errorf("auto migrate: %w", err)
+	}
+	return DB, nil
 }
