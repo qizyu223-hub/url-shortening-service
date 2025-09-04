@@ -19,7 +19,18 @@ func (urs *URLShorteningService) Create(url string) (*model.ShortURL, error) {
 	shortURL.URL = url
 	shortCode := utils.GenerateShortCode(url)
 	shortURL.ShortCode = shortCode
-	return urs.repo.Create(&shortURL)
+	var out *model.ShortURL
+	err := urs.repo.WithTx(func(txRepo *repository.URLShorteningRepository) error {
+		if err := txRepo.Create(&shortURL); err != nil {
+			return err
+		}
+		out = &shortURL
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (urs *URLShorteningService) GetByShortCode(shortCode string) (*model.ShortURL, error) {
@@ -27,28 +38,30 @@ func (urs *URLShorteningService) GetByShortCode(shortCode string) (*model.ShortU
 }
 
 func (urs *URLShorteningService) UpdateURL(shortCode, url string) (*model.ShortURL, error) {
-	shortURL, err := urs.GetByShortCode(shortCode)
+	var out *model.ShortURL
+	err := urs.repo.WithTx(func(txRepo *repository.URLShorteningRepository) error {
+		shortURL, err := txRepo.GetByShortCode(shortCode)
+		if err != nil {
+			return err
+		}
+		shortURL.URL = url
+		err = urs.repo.Update(shortURL)
+		if err != nil {
+			return err
+		}
+		out = shortURL
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	shortURL.URL = url
-	return urs.repo.Update(shortURL)
+	return out, nil
 }
 
-func (urs *URLShorteningService) UpdateAC(shortCode string) error {
-	shortURL, err := urs.GetByShortCode(shortCode)
-	if err != nil {
-		return err
-	}
-	shortURL.AccessCount++
-	_, err = urs.repo.Update(shortURL)
-	return err
+func (urs *URLShorteningService) IncrAccessCount(shortCode string) error {
+	return urs.repo.IncrAccessCount(shortCode)
 }
 
 func (urs *URLShorteningService) Delete(shortCode string) error {
-	su, err := urs.GetByShortCode(shortCode)
-	if err != nil {
-		return err
-	}
-	return urs.repo.Delete(su)
+	return urs.repo.DeleteByShortCode(shortCode)
 }
